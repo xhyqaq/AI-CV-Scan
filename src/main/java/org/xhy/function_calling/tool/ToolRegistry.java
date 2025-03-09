@@ -41,7 +41,7 @@ public class ToolRegistry {
         Map<String, ToolDefinition> toolBeans = applicationContext.getBeansOfType(ToolDefinition.class);
 
         // 注册所有工具
-        toolBeans.forEach((_, tool) -> {
+        toolBeans.forEach((beanName, tool) -> {
             registerTool(tool);
         });
 

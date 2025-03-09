@@ -26,7 +26,7 @@ public class SearchTool implements ToolDefinition {
 
     @Override
     public String getName() {
-        return "search";
+        return "get_search";
     }
 
     @Override

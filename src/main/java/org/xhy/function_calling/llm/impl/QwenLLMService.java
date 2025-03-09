@@ -17,26 +17,27 @@ import org.xhy.function_calling.util.JsonUtils;
 import java.util.Collections;
 
 /**
- * SiliconFlow LLM 服务实现
+ * 通义千问 LLM 服务实现
+ * 阿里云通义千问API服务 - 支持Function Calling功能
  */
 @Service
-public class SiliconFlowLLMService implements LLMService {
+public class QwenLLMService implements LLMService {
 
-    private static final Logger logger = LoggerFactory.getLogger(SiliconFlowLLMService.class);
+    private static final Logger logger = LoggerFactory.getLogger(QwenLLMService.class);
 
     private final RestTemplate restTemplate;
     private final ToolRegistry toolRegistry;
 
-    @Value("${siliconflow.api.url}")
+    @Value("${qwen.api.url:https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions}")
     private String apiUrl;
 
-    @Value("${siliconflow.api.token}")
+    @Value("${qwen.api.token}")
     private String apiToken;
 
-    @Value("${siliconflow.api.model:Qwen/Qwen2.5-72B-Instruct-128K}")
+    @Value("${qwen.api.model:qwen-plus}")
     private String model;
 
-    public SiliconFlowLLMService(RestTemplate restTemplate, ToolRegistry toolRegistry) {
+    public QwenLLMService(RestTemplate restTemplate, ToolRegistry toolRegistry) {
         this.restTemplate = restTemplate;
         this.toolRegistry = toolRegistry;
     }
@@ -63,8 +64,7 @@ public class SiliconFlowLLMService implements LLMService {
                 .stop(null)
                 .temperature(0.7)
                 .top_p(0.7)
-                .top_k(50)
-                .frequency_penalty(0.5)
+                .frequency_penalty(0.0)
                 .n(1)
                 .response_format(new ResponseFormat("text"))
                 .tools(toolRegistry.getToolsForLLM()) // 使用工具注册表获取所有工具
@@ -74,16 +74,16 @@ public class SiliconFlowLLMService implements LLMService {
         HttpEntity<ChatCompletionRequest> requestEntity = new HttpEntity<>(requestBody, headers);
 
         // 发送请求并获取响应
-        logger.debug("发送请求到 SiliconFlow API: {}", JsonUtils.toJson(requestBody));
+        logger.debug("发送请求到 通义千问 API: {}", JsonUtils.toJson(requestBody));
         ChatCompletionResponse response = restTemplate.postForObject(apiUrl, requestEntity,
                 ChatCompletionResponse.class);
-        logger.debug("收到 SiliconFlow API 响应: {}", JsonUtils.toJson(response));
+        logger.debug("收到 通义千问 API 响应: {}", JsonUtils.toJson(response));
 
         return response;
     }
 
     @Override
     public String getProviderName() {
-        return "SiliconFlow";
+        return "Qwen";
     }
 }

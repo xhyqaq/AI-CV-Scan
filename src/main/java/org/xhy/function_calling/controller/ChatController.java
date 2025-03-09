@@ -2,6 +2,7 @@ package org.xhy.function_calling.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.xhy.function_calling.dto.response.ChatCompletionResponse;
@@ -23,7 +24,7 @@ public class ChatController {
     private final ToolCallProcessor toolCallProcessor;
 
     public ChatController(
-            LLMService llmService,
+            @Qualifier("qwenLLMService") LLMService llmService,
             ToolCallProcessor toolCallProcessor) {
         this.llmService = llmService;
         this.toolCallProcessor = toolCallProcessor;
@@ -53,5 +54,10 @@ public class ChatController {
         result.put("provider", llmService.getProviderName());
 
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/")
+    public String index() {
+        return "index"; // 确保这是正确的模板名称，不需要添加.html后缀
     }
 }
