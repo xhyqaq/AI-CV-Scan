@@ -8,10 +8,9 @@ import org.xhy.function_calling.dto.response.ChatCompletionResponse;
 import org.xhy.function_calling.llm.LLMService;
 import org.xhy.function_calling.service.TaskDecomposer;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 基于LLM的任务分解器实现
@@ -30,12 +29,16 @@ public class LLMTaskDecomposer implements TaskDecomposer {
     @Override
     public List<String> decomposeTask(String userQuery) {
         String decompositionPrompt = String.format(
-                "你是一个专业的任务规划助手，请将以下复杂任务分解为一系列有序的具体子任务，以便于执行。" +
-                        "子任务描述应当面向用户，清晰易懂，避免使用技术术语或API调用细节。" +
-                        "每个子任务应该描述一个完整的、独立的步骤，而不是实现该步骤的技术细节。" +
-                        "例如，对于\"帮我安排北京3天游玩计划\"，好的子任务应该是\"获取北京热门景点信息\"而不是\"调用travel_planner获取景点\"。" +
-                        "请将结果格式化为数字列表，每行一个子任务，不要添加额外的解释。" +
-                        "复杂任务: %s",
+                "你是一个专业的任务规划专家，请根据用户的需求，将复杂任务分解为合理的子任务序列。" +
+                        "在分解任务时，请考虑以下几点：" +
+                        "\n1. 充分理解用户的真实需求和背景，挖掘潜在的子任务" +
+                        "\n2. 子任务应该覆盖问题解决的整个过程，确保完整性" +
+                        "\n3. 根据任务的复杂度，决定合适的子任务粒度和数量" +
+                        "\n4. 子任务应按照合理的顺序排列，确保执行的流畅性" +
+                        "\n5. 子任务描述应面向用户，清晰易懂，避免技术术语" +
+                        "\n6. 创造性地考虑用户可能忽略的方面，提供全面的规划" +
+                        "\n\n以下是用户的需求：%s" +
+                        "\n\n请分解为合理的子任务序列，直接以数字编号的形式列出，无需额外解释。",
                 userQuery);
 
         try {
@@ -46,6 +49,7 @@ public class LLMTaskDecomposer implements TaskDecomposer {
             String decompositionResult = "";
             if (response.getChoices() != null && !response.getChoices().isEmpty()) {
                 decompositionResult = response.getChoices().get(0).getMessage().getContent();
+                logger.debug("LLM返回的任务分解原始结果: {}", decompositionResult);
             }
 
             if (decompositionResult == null || decompositionResult.isEmpty()) {
@@ -53,25 +57,40 @@ public class LLMTaskDecomposer implements TaskDecomposer {
                 return Collections.singletonList(userQuery);
             }
 
-            // 解析LLM返回的子任务列表
-            List<String> subtasks = Arrays.stream(decompositionResult.split("\n"))
-                    .map(line -> line.replaceAll("^\\d+\\.\\s*", "").trim())
-                    .filter(task -> !task.isEmpty())
-                    .collect(Collectors.toList());
+            // 更健壮的子任务提取逻辑
+            List<String> subtasks = new ArrayList<>();
+
+            // 尝试从格式化的数字列表中提取
+            String[] lines = decompositionResult.split("\\r?\\n");
+            for (String line : lines) {
+                line = line.trim();
+
+                // 跳过空行和非任务行
+                if (line.isEmpty() || line.startsWith("以下是") || line.startsWith("这是") ||
+                        line.startsWith("我会") || line.startsWith("接下来")) {
+                    continue;
+                }
+
+                // 匹配常见的任务格式: 数字、序号或点号开头
+                // 例如: "1. 任务", "1) 任务", "• 任务", "- 任务"等
+                String cleanedLine = line.replaceAll("^\\d+\\.\\s*|^\\d+\\)\\s*|^[•\\-]\\s*", "").trim();
+
+                if (!cleanedLine.isEmpty()) {
+                    subtasks.add(cleanedLine);
+                }
+            }
+
+            logger.debug("解析后的子任务列表({} 个): {}", subtasks.size(), subtasks);
 
             if (subtasks.isEmpty()) {
                 logger.warn("未能提取有效子任务，将使用原始查询作为单一任务");
                 return Collections.singletonList(userQuery);
             }
 
-            // 添加最后的润色步骤作为子任务之一
-            subtasks.add("整理行程信息，形成最终的游玩计划");
-
-            logger.info("成功将任务分解为{}个子任务", subtasks.size());
+            logger.info("成功将任务分解为 {} 个子任务", subtasks.size());
             return subtasks;
         } catch (Exception e) {
-            logger.error("任务分解过程出错", e);
-            // 出错时退回到将整个查询作为单一任务
+            logger.error("任务分解过程中发生异常", e);
             return Collections.singletonList(userQuery);
         }
     }

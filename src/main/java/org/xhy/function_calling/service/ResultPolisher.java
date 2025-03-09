@@ -45,14 +45,67 @@ public class ResultPolisher {
             }
 
             promptBuilder.append("\n执行结果如下:\n");
-            for (Map<String, Object> result : results) {
-                promptBuilder.append(result).append("\n");
+            for (int i = 0; i < results.size(); i++) {
+                promptBuilder.append("任务").append(i + 1).append("结果: ").append(results.get(i)).append("\n\n");
             }
 
             promptBuilder.append("\n请根据以上信息，生成一个结构化、美观、易于理解的最终结果。");
             promptBuilder.append("结果应当包含所有重要信息，但要去除技术细节和冗余数据。");
             promptBuilder.append("使用清晰的标题、分段和列表使内容易于阅读。");
-            promptBuilder.append("如果是旅行计划，应包含每天的具体行程安排、景点介绍、用餐建议和交通指南等内容。");
+
+            // 添加针对旅行规划的特殊指引
+            if (originalQuery.contains("旅游") || originalQuery.contains("旅行") ||
+                    originalQuery.contains("游玩") || originalQuery.contains("计划") ||
+                    originalQuery.contains("行程")) {
+                promptBuilder.append("\n\n对于旅行计划，请提供一个全面的旅游指南，应包含以下内容：");
+                promptBuilder.append("\n1. 行程概述");
+                promptBuilder.append("\n   - 标题（城市名称和天数）");
+                promptBuilder.append("\n   - 行程亮点和总体安排");
+                promptBuilder.append("\n   - 推荐的住宿区域");
+
+                promptBuilder.append("\n2. 出行准备");
+                promptBuilder.append("\n   - 天气情况和着装建议");
+                promptBuilder.append("\n   - 必备物品清单");
+                promptBuilder.append("\n   - 当地语言和文化简介");
+
+                promptBuilder.append("\n3. 每天的详细行程安排，清晰标明'第X天'，包括：");
+                promptBuilder.append("\n   - 上午活动和推荐景点（包含开放时间和预计游玩时长）");
+                promptBuilder.append("\n   - 午餐建议（特色餐厅或美食推荐）");
+                promptBuilder.append("\n   - 下午活动和推荐景点");
+                promptBuilder.append("\n   - 晚餐建议");
+                promptBuilder.append("\n   - 晚上活动或休息安排");
+
+                promptBuilder.append("\n4. 交通指南");
+                promptBuilder.append("\n   - 市内交通选择和建议");
+                promptBuilder.append("\n   - 往返各景点的交通方式");
+                promptBuilder.append("\n   - 交通卡或特殊交通工具推荐");
+
+                promptBuilder.append("\n5. 住宿建议");
+                promptBuilder.append("\n   - 推荐住宿区域和理由");
+                promptBuilder.append("\n   - 不同预算的住宿选择");
+                promptBuilder.append("\n   - 预订建议和注意事项");
+
+                promptBuilder.append("\n6. 餐饮指南");
+                promptBuilder.append("\n   - 必尝特色美食清单");
+                promptBuilder.append("\n   - 各区域推荐餐厅");
+                promptBuilder.append("\n   - 不同价位的用餐选择");
+
+                promptBuilder.append("\n7. 预算规划");
+                promptBuilder.append("\n   - 总体预算估算");
+                promptBuilder.append("\n   - 各项费用明细（住宿、餐饮、交通、门票、购物）");
+                promptBuilder.append("\n   - 省钱小贴士");
+
+                promptBuilder.append("\n8. 实用提示");
+                promptBuilder.append("\n   - 最佳旅游季节");
+                promptBuilder.append("\n   - 安全注意事项");
+                promptBuilder.append("\n   - 当地习俗和礼仪");
+                promptBuilder.append("\n   - 紧急联系方式");
+
+                // 引导处理搜索结果数据
+                promptBuilder.append("\n\n请注意，以上搜索结果中包含各种信息，你需要整合这些信息，提取关键数据，形成一个完整连贯的旅游指南。");
+                promptBuilder.append("\n对于缺失的信息，可以基于已有数据合理推断，但要明确标识推断的部分。");
+                promptBuilder.append("\n最终的旅游指南应该是一个结构清晰、信息全面、实用性强的文档，可以直接指导用户的旅行活动。");
+            }
 
             // 调用LLM进行润色
             ChatCompletionResponse response = llmService.getChatCompletion(promptBuilder.toString());
@@ -64,7 +117,7 @@ public class ResultPolisher {
             }
 
             if (polishedResult.isEmpty()) {
-                logger.warn("结果润色失败，返回原始结果");
+                logger.warn("结果润色失败: LLM返回空结果");
                 return "无法生成美化结果，请查看原始数据。";
             }
 
