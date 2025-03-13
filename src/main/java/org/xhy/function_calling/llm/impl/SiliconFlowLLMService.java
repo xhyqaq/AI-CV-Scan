@@ -83,6 +83,44 @@ public class SiliconFlowLLMService implements LLMService {
     }
 
     @Override
+    public ChatCompletionResponse getChatCompletion(ChatCompletionRequest request) {
+        // 创建请求头
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + apiToken);
+
+        // 创建 HTTP 请求实体
+        HttpEntity<ChatCompletionRequest> requestEntity = new HttpEntity<>(request, headers);
+
+        // 发送请求并获取响应
+        logger.debug("发送请求到 SiliconFlow API: {}", JsonUtils.toJson(request));
+        ChatCompletionResponse response = restTemplate.postForObject(apiUrl, requestEntity,
+                ChatCompletionResponse.class);
+        logger.debug("收到 SiliconFlow API 响应: {}", JsonUtils.toJson(response));
+
+        return response;
+    }
+
+    @Override
+    public ChatCompletionResponse getChatCompletion(UrlChatCompletionRequest request) {
+        // 创建请求头
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + apiToken);
+
+        // 创建 HTTP 请求实体
+        HttpEntity<UrlChatCompletionRequest> requestEntity = new HttpEntity<>(request, headers);
+
+        // 发送请求并获取响应
+        logger.debug("发送请求到 SiliconFlow API: {}", JsonUtils.toJson(request));
+        ChatCompletionResponse response = restTemplate.postForObject(apiUrl, requestEntity,
+                ChatCompletionResponse.class);
+        logger.debug("收到 SiliconFlow API 响应: {}", JsonUtils.toJson(response));
+
+        return response;
+    }
+
+    @Override
     public String getProviderName() {
         return "SiliconFlow";
     }

@@ -29,4 +29,9 @@ public class ChatCompletionRequest {
     private Integer n;
     private ResponseFormat response_format;
     private List<Tool> tools;
+
+    /**
+     * 文件URL，用于处理文件类型的请求
+     */
+    private String file_url;
 }

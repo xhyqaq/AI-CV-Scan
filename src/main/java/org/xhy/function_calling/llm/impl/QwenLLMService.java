@@ -45,6 +45,7 @@ public class QwenLLMService implements LLMService {
         }
 
         @Override
+        @Deprecated
         public ChatCompletionResponse getChatCompletion(String userQuery) {
                 // 创建请求头
                 HttpHeaders headers = new HttpHeaders();
@@ -57,27 +58,7 @@ public class QwenLLMService implements LLMService {
                 // 添加系统消息
                 Message systemMessage = Message.builder()
                                 .role("system")
-                                .content("你是一个智能旅游助手，可以使用工具来帮助用户完成旅游规划。\n\n" +
-                                                "当用户需要旅游规划或相关信息时，请使用google_search工具进行全面搜索，包括：\n" +
-                                                "1. 搜索'[城市名] 近期天气预报'获取天气信息\n" +
-                                                "2. 搜索'[城市名] 热门旅游景点'获取景点信息\n" +
-                                                "3. 搜索'[城市名] 推荐餐厅'或'[城市名] 美食'获取餐饮信息\n" +
-                                                "4. 搜索'[城市名] 住宿推荐'或'[城市名] 酒店'获取住宿信息\n" +
-                                                "5. 搜索'[城市名] 交通指南'获取当地交通信息\n" +
-                                                "6. 搜索'[城市名] 旅游预算'或'[城市名] 旅游花费'获取费用参考\n" +
-                                                "7. 搜索'[城市名] [天数]天 旅游攻略'获取整体行程建议\n\n" +
-                                                "请根据用户的具体需求有策略地确定搜索关键词，执行多次搜索以获得足够的信息。" +
-                                                "然后根据搜索结果，为用户提供全面、详细的旅游规划，包括：\n" +
-                                                "- 行程总览（几天几晚，住宿地点，主要景点）\n" +
-                                                "- 每日详细行程安排（上午/下午/晚上的活动安排）\n" +
-                                                "- 天气和着装建议\n" +
-                                                "- 餐饮推荐（当地特色美食和餐厅）\n" +
-                                                "- 住宿建议（位置、价格范围、酒店类型）\n" +
-                                                "- 交通方式推荐（市内交通、景点间交通）\n" +
-                                                "- 预算参考（总体花费估算，各项具体费用）\n" +
-                                                "- 旅行贴士（注意事项、必备物品等）\n\n" +
-                                                "在回答中结构化展示信息，使用标题、分点和表格使内容清晰易读。" +
-                                                "google_search工具能够搜索任何城市和目的地的信息，不受地域限制。")
+                                .content("你是一个智能助手，可以使用工具来帮助用户完成任务。")
                                 .build();
 
                 // 添加用户消息
@@ -104,6 +85,35 @@ public class QwenLLMService implements LLMService {
                                 .tools(toolRegistry.getToolsForLLM())
                                 .build();
 
+                return sendRequest(requestBody, headers);
+        }
+
+        @Override
+        public ChatCompletionResponse getChatCompletion(ChatCompletionRequest request) {
+                // 创建请求头
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("Authorization", "Bearer " + apiToken);
+
+                // 如果请求中没有指定模型，使用默认模型
+                if (request.getModel() == null || request.getModel().trim().isEmpty()) {
+                        request.setModel(model);
+                }
+
+                // 如果请求中没有指定工具，添加默认工具
+                if (request.getTools() == null || request.getTools().isEmpty()) {
+                        request.setTools(toolRegistry.getToolsForLLM());
+                }
+
+                return sendRequest(request, headers);
+        }
+
+        @Override
+        public ChatCompletionResponse getChatCompletion(UrlChatCompletionRequest request) {
+                return null;
+        }
+
+        private ChatCompletionResponse sendRequest(ChatCompletionRequest requestBody, HttpHeaders headers) {
                 // 创建 HTTP 请求实体
                 HttpEntity<ChatCompletionRequest> requestEntity = new HttpEntity<>(requestBody, headers);
 
