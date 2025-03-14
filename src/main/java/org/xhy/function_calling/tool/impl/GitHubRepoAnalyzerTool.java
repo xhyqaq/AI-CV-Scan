@@ -65,14 +65,6 @@ public class GitHubRepoAnalyzerTool implements ToolDefinition {
         return parameters;
     }
 
-    public static void main(String[] args) {
-        GitHubRepoAnalyzerTool gitHubRepoAnalyzerTool = new GitHubRepoAnalyzerTool();
-        // 构造测试参数，包含多个URL
-        String testArgs = "{\"urls\": [\"https://github.com/LiusCraft/campus-second-hand-platform\", \"https://github.com/LiusCraft\"]}";
-        Object result = gitHubRepoAnalyzerTool.execute(testArgs);
-        System.out.println(result);
-    }
-
     @Override
     public Object execute(String arguments) {
         try {
