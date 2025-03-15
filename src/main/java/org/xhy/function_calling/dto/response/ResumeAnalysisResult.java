@@ -31,7 +31,7 @@ public class ResumeAnalysisResult {
     private String evaluation;
 
     /**
-     * 总结
+     * GitHub分析结果
      */
-    private String summary;
+    private String githubAnalysis;
 }

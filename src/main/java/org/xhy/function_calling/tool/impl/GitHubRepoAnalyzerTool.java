@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.kohsuke.github.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.xhy.function_calling.dto.GitHubAnalysisResult;
@@ -31,9 +32,9 @@ public class GitHubRepoAnalyzerTool implements ToolDefinition {
     private static final int MAX_COMMITS_TO_CHECK = 30; // 最多检查的提交数量
     private static final int API_RETRY_DELAY_MS = 100; // API请求之间的延迟，避免触发限制
 
-    // GitHub 认证令牌，通过配置注入
-    @Value("${github.token:}")
-    private String githubToken;
+    // GitHub API 客户端
+    @Autowired
+    private GitHub github;
 
     @Override
     public String getName() {
@@ -81,19 +82,10 @@ public class GitHubRepoAnalyzerTool implements ToolDefinition {
                         .build();
             }
 
-            // 获取令牌 - 从配置文件获取
-            String token = githubToken;
-
-            // 是否包含 fork 的仓库（默认为 true）
-            boolean includeForked = true;
-
             Set<GitHubAnalysisResult.UserInfo> users = Collections.synchronizedSet(new HashSet<>());
             Set<GitHubAnalysisResult.RepoInfo> originalRepos = Collections.synchronizedSet(new HashSet<>());
             Set<GitHubAnalysisResult.RepoInfo> forkedRepos = Collections.synchronizedSet(new HashSet<>());
             List<String> errors = Collections.synchronizedList(new ArrayList<>());
-
-            // 创建 GitHub 客户端（使用令牌或匿名）
-            GitHub github = connectToGitHub(token);
 
             // 记录认证状态
             boolean isAuthenticated = github.isCredentialValid();
@@ -118,8 +110,7 @@ public class GitHubRepoAnalyzerTool implements ToolDefinition {
                             String owner = repoMatcher.group(1);
                             String repoName = repoMatcher.group(2);
                             try {
-                                analyzeRepositoryWithTimeout(github, owner, repoName, originalRepos, forkedRepos,
-                                        includeForked);
+                                analyzeRepositoryWithTimeout(github, owner, repoName, originalRepos, forkedRepos, true);
                             } catch (TimeoutException e) {
                                 logger.warn("分析仓库 {}/{} 超时", owner, repoName);
                                 errors.add("分析仓库 " + owner + "/" + repoName + " 超时");
@@ -135,7 +126,7 @@ public class GitHubRepoAnalyzerTool implements ToolDefinition {
                         if (userMatcher.find()) {
                             String username = userMatcher.group(1);
                             try {
-                                analyzeUser(github, username, users, originalRepos, forkedRepos, includeForked);
+                                analyzeUser(github, username, users, originalRepos, forkedRepos, true);
                             } catch (Exception e) {
                                 logger.warn("分析用户 {} 出错: {}", username, e.getMessage());
                                 errors.add("分析用户 " + username + " 出错: " + e.getMessage());
@@ -195,7 +186,7 @@ public class GitHubRepoAnalyzerTool implements ToolDefinition {
             int originalCount = originalRepos.size();
             int forkedCount = forkedRepos.size();
             messageBuilder.append("。发现 ").append(originalCount).append(" 个原创仓库");
-            if (includeForked) {
+            if (true) { // includeForked always true now
                 messageBuilder.append(" 和 ").append(forkedCount).append(" 个fork仓库");
 
                 // 统计有自己贡献的 fork 仓库数量
@@ -212,7 +203,7 @@ public class GitHubRepoAnalyzerTool implements ToolDefinition {
             return GitHubAnalysisResult.builder()
                     .users(new ArrayList<>(users))
                     .originalRepositories(new ArrayList<>(originalRepos))
-                    .forkedRepositories(includeForked ? new ArrayList<>(forkedRepos) : new ArrayList<>())
+                    .forkedRepositories(new ArrayList<>(forkedRepos))
                     .message(messageBuilder.toString())
                     .build();
 
@@ -221,18 +212,6 @@ public class GitHubRepoAnalyzerTool implements ToolDefinition {
             return GitHubAnalysisResult.builder()
                     .message("分析 GitHub 信息出错: " + e.getMessage())
                     .build();
-        }
-    }
-
-    /**
-     * 连接到 GitHub API
-     * 如果提供了令牌，则使用认证访问；否则使用匿名访问
-     */
-    private GitHub connectToGitHub(String token) throws IOException {
-        if (token != null && !token.trim().isEmpty()) {
-            return new GitHubBuilder().withOAuthToken(token).build();
-        } else {
-            return GitHub.connectAnonymously();
         }
     }
 
